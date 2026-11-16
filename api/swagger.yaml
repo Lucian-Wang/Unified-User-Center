@@ -1,0 +1,406 @@
+openapi: 3.0.0
+info:
+  title: 用户中心API
+  version: 1.2.0
+servers:
+  - url: https://yourdomain.com/api
+paths:
+  /login:
+    post:
+      summary: 用户登录
+      description: 用户通过手机号和密码进行登录，返回 token 和用户基本信息。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobile:
+                  type: string
+                  description: 用户注册手机号
+                password:
+                  type: string
+                  description: 用户密码
+      responses:
+        200:
+          description: 登录成功，返回token和用户信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    description: 返回码，0为成功
+                  token:
+                    type: string
+                    description: 认证token
+                  user:
+                    $ref: '#/components/schemas/User'
+  /register:
+    post:
+      summary: 用户注册
+      description: 新用户注册账号，需手机号、密码、昵称及短信验证码。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobile:
+                  type: string
+                  description: 用户注册手机号
+                password:
+                  type: string
+                  description: 用户设置的密码
+                name:
+                  type: string
+                  description: 用户昵称
+                sms_code:
+                  type: string
+                  description: 短信验证码
+      responses:
+        200:
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    description: 返回码，0为成功
+                  msg:
+                    type: string
+                    description: 提示信息
+  /send_sms:
+    post:
+      summary: 发送短信验证码
+      description: 发送短信验证码到指定手机号（用于注册、找回密码、修改手机等场景）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  description: 接收验证码的手机号
+      responses:
+        200:
+          description: 发送结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: integer
+                    description: 0失败 1成功
+                  msg:
+                    type: string
+                    description: 提示信息
+  /forgot_password:
+    post:
+      summary: 忘记密码重置
+      description: 用户通过手机号和短信验证码重置登录密码。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobile:
+                  type: string
+                  description: 用户注册手机号
+                sms_code:
+                  type: string
+                  description: 短信验证码
+                new_password:
+                  type: string
+                  description: 新密码
+      responses:
+        200:
+          description: 密码重置结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    description: 返回码，0为成功
+                  msg:
+                    type: string
+                    description: 提示信息
+  /user_info:
+    get:
+      summary: 获取用户信息
+      description: 根据token获取当前登录用户的详细信息。
+      parameters:
+        - in: query
+          name: token
+          schema:
+            type: string
+          required: true
+          description: 登录token
+      responses:
+        200:
+          description: 用户信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    description: 返回码，0为成功
+                  user:
+                    $ref: '#/components/schemas/User'
+  /update_profile:
+    post:
+      summary: 更新个人资料
+      description: 修改昵称、邮箱、简介等信息。需已登录。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 用户昵称
+                email:
+                  type: string
+                  description: 邮箱
+                bio:
+                  type: string
+                  description: 个人简介
+      responses:
+        200:
+          description: 修改结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+  /change_avatar:
+    post:
+      summary: 更换头像
+      description: 上传新的头像图片，返回头像URL。需已登录。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: 头像图片（jpg/png/webp，2M以内）
+      responses:
+        200:
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  url:
+                    type: string
+                  msg:
+                    type: string
+  /user_log_list:
+    get:
+      summary: 获取当前用户操作日志
+      description: 获取当前用户的最近操作日志（需登录）。
+      responses:
+        200:
+          description: 日志列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Log'
+  /user_list:
+    get:
+      summary: 获取用户列表（管理员）
+      description: 管理员获取所有用户的列表信息。
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token，管理员权限
+      responses:
+        200:
+          description: 用户列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    description: 返回码，0为成功
+                  list:
+                    type: array
+                    description: 用户列表
+                    items:
+                      $ref: '#/components/schemas/User'
+  /log_list:
+    get:
+      summary: 获取操作日志列表（管理员）
+      description: 管理员获取所有用户的操作日志。
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token，管理员权限
+      responses:
+        200:
+          description: 日志列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Log'
+  /change_mobile:
+    post:
+      summary: 更换手机号
+      description: 用户更换绑定手机号，需验证新手机号的唯一性和短信验证码。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_mobile:
+                  type: string
+                  description: 新手机号
+                sms_code:
+                  type: string
+                  description: 新手机号收到的短信验证码
+      responses:
+        200:
+          description: 更换结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+  /change_password:
+    post:
+      summary: 修改密码
+      description: 用户已登录状态下，输入原密码和新密码以修改登录密码。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                  description: 当前登录密码
+                new_password:
+                  type: string
+                  description: 新密码，至少6位
+      responses:
+        200:
+          description: 修改密码成功或失败的结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 用户ID
+        mobile:
+          type: string
+          description: 用户手机号
+        name:
+          type: string
+          description: 用户昵称
+        email:
+          type: string
+          description: 用户邮箱
+        avatar:
+          type: string
+          description: 头像URL
+        bio:
+          type: string
+          description: 个人简介
+        roles:
+          type: array
+          items:
+            type: string
+          description: 角色列表
+        status:
+          type: integer
+          description: 账户状态，1正常 0禁用
+        created_at:
+          type: string
+          description: 注册时间
+    Log:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 日志ID
+        user_id:
+          type: integer
+          description: 操作用户ID
+        action:
+          type: string
+          description: 操作类型/说明
+        time:
+          type: string
+          description: 操作时间
